@@ -1,0 +1,52 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// Enumeração para facilitar o controle de acesso e protocolos
+enum Role {
+  ADMIN
+  USER
+  VISITOR
+}
+
+enum Protocol {
+  WIFI
+  ZIGBEE
+  BLUETOOTH
+}
+
+model User {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  email         String   @unique
+  password      String   // Senha hasheada com bcrypt
+  role          Role     @default(VISITOR)
+  parentId      String?  @db.ObjectId // ID do Usuário que criou este visitante/usuário
+  devices       Device[] // Dispositivos associados
+  logs          Log[]
+}
+
+model Device {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  protocol    Protocol
+  status      Boolean  @default(false) // true = Ligado, false = Desligado
+  ownerId     String   @db.ObjectId
+  owner       User     @relation(fields: [ownerId], references: [id])
+  logs        Log[]
+}
+
+model Log {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  action      String   // Ex: "Ligou o dispositivo", "Criou rotina"
+  timestamp   DateTime @default(now())
+  deviceId    String?  @db.ObjectId
+  device      Device?  @relation(fields: [deviceId], references: [id])
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id])
+}

@@ -1,0 +1,16 @@
+# docker-compose.yml
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: iot_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    # Réplica set é necessário para o Prisma usar transações no MongoDB
+    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+
+volumes:
+  mongo_data:
+  
