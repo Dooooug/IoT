@@ -53,5 +53,8 @@ export const authOptions: NextAuthOptions = {
   },
   // 👇 ESTA É A LINHA QUE RESOLVE O ERRO DE DESCRIPTOGRAFIA (JWT_SESSION_ERROR) 👇
   // Ela força o NextAuth a usar a sua variável de ambiente para abrir/fechar o cadeado do token.
-  secret: process.env.NEXTAUTH_SECRET, 
+  secret: process.env.NEXTAUTH_SECRET,
+  pages: {
+    signIn: "/login",
+  },
 };
