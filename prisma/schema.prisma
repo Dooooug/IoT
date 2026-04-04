@@ -22,11 +22,13 @@ enum Protocol {
 }
 
 model User {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  email         String   @unique
-  password      String   // Senha hasheada com bcrypt
-  role          Role     @default(VISITOR)
-  parentId      String?  @db.ObjectId // ID do Usuário que criou este visitante/usuário
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  email            String   @unique
+  password         String
+  role             Role     @default(VISITOR)
+  isEmailVerified  Boolean  @default(false) // Novo: Controle de ativação
+  verificationCode String?  // Novo: Código OTP temporário
+  parentId         String?  @db.ObjectId
   devices       Device[] // Dispositivos associados
   logs          Log[]
 }
