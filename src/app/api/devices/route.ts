@@ -1,47 +1,42 @@
 // src/app/api/devices/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
 export async function POST(req: Request) {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   
-  // Regra de segurança: Bloqueia quem não está logado ou é apenas VISITANTE
-  if (!session || session.user.role === "VISITOR") {
-    return NextResponse.json({ error: "Acesso negado. Visitantes não podem cadastrar dispositivos." }, { status: 403 });
+  // Verifica se a sessão existe e tem um email válido
+  if (!session || !session.user?.email) {
+    return NextResponse.json({ error: "Acesso negado." }, { status: 401 });
   }
 
   try {
-    const body = await req.json();
-    const { name, protocol } = body;
+    const { name, protocol } = await req.json();
 
-    // Reconhecimento e validação rígida do protocolo
-    const validProtocols = ["WIFI", "ZIGBEE", "BLUETOOTH"];
-    if (!validProtocols.includes(protocol)) {
-      return NextResponse.json({ error: "Protocolo inválido ou não suportado." }, { status: 400 });
+    // 1. Busca o usuário verdadeiro no banco usando o e-mail da sessão
+    const dbUser = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    });
+
+    if (!dbUser) {
+      return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
     }
 
-    // Cria o dispositivo e vincula ao ID do usuário que fez a requisição
+    // 2. Agora sim, cria o dispositivo garantindo que o ownerId é uma String válida
     const newDevice = await prisma.device.create({
       data: {
         name,
         protocol,
-        ownerId: session.user.id,
+        status: false,
+        ownerId: dbUser.id, 
       }
     });
 
-    // Registra a ação no histórico de Logs para auditoria do Admin
-    await prisma.log.create({
-      data: {
-        action: `Cadastrou novo dispositivo via ${protocol}`,
-        deviceId: newDevice.id,
-        userId: session.user.id
-      }
-    });
-
-    return NextResponse.json(newDevice, { status: 201 });
+    return NextResponse.json({ message: "Dispositivo registrado!", device: newDevice }, { status: 201 });
   } catch (error) {
-    console.error("Erro no cadastro:", error); // <-- Adicionamos o uso da variável aqui
-    return NextResponse.json({ error: "Erro interno ao cadastrar dispositivo." }, { status: 500 });
+    console.error("Erro ao salvar dispositivo:", error);
+    return NextResponse.json({ error: "Erro interno ao cadastrar." }, { status: 500 });
   }
 }
